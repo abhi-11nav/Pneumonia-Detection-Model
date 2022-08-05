@@ -16,7 +16,7 @@ import numpy as np
 from tensorflow.keras.applications.imagenet_utils import preprocess_input, decode_predictions
 from tensorflow.keras.models import load_model 
 from tensorflow.keras.preprocessing import image 
-
+import tensorflow as tf
 # Flask utils 
 from flask import Flask, redirect, url_for, request, render_template
 from werkzeug.utils import secure_filename
@@ -35,7 +35,7 @@ def model_predict(path, model):
     # Preprocessing the image
     img = image.img_to_array(img)
     
-    img /= 255
+    img = img/ 255
         
     img = np.expand_dims(img, axis=0)
     
@@ -43,21 +43,14 @@ def model_predict(path, model):
     
     prediction = model.predict(img)
     
-    prediction = np.argmax(prediction, axis=1)
-    
-    if prediction==0:
-        prediction = "The person is infected with Pneumonia"
-    else:
-        prediction = "The person is not infected with Pneumonia"
-    
     return prediction
 
-@app.route("/",methods=["GET","POST"])
-def index():
+@app.route("/",methods=["GET"])
+def home():
     return render_template("/index.html")
 
-@app.route("/predict",methods=["GET","POST"])
-def upload():
+@app.route("/",methods=["POST"])
+def predict():
     if request.method == "POST":
         target = request.files["file"]
         
@@ -66,9 +59,13 @@ def upload():
         file_path = os.path.join(basepath,'uploads',secure_filename(target.filename))
         target.save(file_path)
 
-        prediction = model_predict(file_path, model)       
-    
-    return prediction
+        op = model_predict(file_path, model) 
+        
+                
+        if op[0]>op[1]:
+            return render_template("/index.html",prediction_text = " PNEUMONIA")
+        else:
+            return render_template("/index.html",prediction_text = " NO PNEUMONIA")
 
 
 
